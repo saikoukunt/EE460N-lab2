@@ -523,26 +523,26 @@ void process_instruction(){
       break;
 
 //_______________________________________________ S T B _________________________________________________
-      case stb:
-        int data = CURRENT_LATCHES.REGS[get_DR(instr)] & 0x000000FF;
-        int address = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6((instr & 0x003F));
-        MEMORY[address >> 1][address % 2] = data;
-        break;
+    case stb:
+      int data = CURRENT_LATCHES.REGS[get_DR(instr)] & 0x000000FF;
+      int address = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6((instr & 0x003F));
+      MEMORY[address >> 1][address % 2] = data;
+      break;
 
  //______________________________________________ S T W _________________________________________________
-      case stw:
-        int data = CURRENT_LATCHES.REGS[get_DR(instr)];
-        int address = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6((instr & 0x003F)) << 1;
-        MEMORY[address >> 1][1] = data & 0x0000FF00;
-        MEMORY[address >> 1][0] = data & 0x000000FF;
-        break;       
+    case stw:
+      int data = CURRENT_LATCHES.REGS[get_DR(instr)];
+      int address = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6((instr & 0x003F)) << 1;
+      MEMORY[address >> 1][1] = data & 0x0000FF00;
+      MEMORY[address >> 1][0] = data & 0x000000FF;
+      break;       
 
 //______________________________________________ T R A P ________________________________________________
-      case trap:
-        NEXT_LATCHES.REGS[7] = CURRENT_LATCHES.PC;
-        int vect = instr & 0x000000FF;
-        NEXT_LATCHES.PC = MEMORY[vect << 1][1] << 8 + MEMORY[vect << 1][0];
-        break;
+    case trap:
+      NEXT_LATCHES.REGS[7] = CURRENT_LATCHES.PC;
+      int vect = instr & 0x000000FF;
+      NEXT_LATCHES.PC = MEMORY[vect << 1][1] << 8 + MEMORY[vect << 1][0];
+      break;
 
     default: //RTI(1000), 1010, 1011
       break;
