@@ -49,7 +49,7 @@ System_Latches CURRENT_LATCHES, NEXT_LATCHES;
 #define setCC(x){ \
       NEXT_LATCHES.N = 0;\
       NEXT_LATCHES.Z = 0;\
-      NEXT_LATCHES.P = 0;\  
+      NEXT_LATCHES.P = 0;\
       if(x > 0) NEXT_LATCHES.P = 1;\
       else if(x == 0) NEXT_LATCHES.Z = 1;\
       else if(x < 0) NEXT_LATCHES.N = 1;\
@@ -405,7 +405,7 @@ void process_instruction(){
 
   //Fetch
   int pc = CURRENT_LATCHES.PC;
-  int instr = MEMORY[pc >> 1][1] << 8 + MEMORY[pc >> 1][0];
+  int instr = (MEMORY[pc >> 1][1] << 8) + MEMORY[pc >> 1][0];
   NEXT_LATCHES.PC += 2;
 
   //Decode
@@ -416,7 +416,7 @@ void process_instruction(){
 //______________________________________ A D D | A N D | X O R ___________________________________________
     case add:
     case and:
-    case xor:
+    case xor:;
       int result;
       int op1 = CURRENT_LATCHES.REGS[get_SR1(instr)]; //Get value of SR1
       int op2;
@@ -428,7 +428,6 @@ void process_instruction(){
       else{ //bit 5 = 0, op2 = sr2
         op2 = CURRENT_LATCHES.REGS[get_SR2(instr)]; //Get value of SR2
       }
-
       //Compute and store result
       if(opcode == add){
         result = op1 + op2;
@@ -445,7 +444,7 @@ void process_instruction(){
       break;
 
 //__________________________________________________ B R __________________________________________________ 
-    case br:
+    case br:;
       bool n = CURRENT_LATCHES.N && (instr & 0x0800);
       bool z = CURRENT_LATCHES.Z && (instr & 0x0400);
       bool p = CURRENT_LATCHES.P && (instr & 0x0200);
@@ -457,12 +456,12 @@ void process_instruction(){
       break;
 
 //_________________________________________________ J M P _________________________________________________
-    case jmp:
+    case jmp:;
       NEXT_LATCHES.PC = CURRENT_LATCHES.REGS[get_BaseR(instr)];
       break;
 
 //_________________________________________________ J S R ________________________________________________
-    case jsr:
+    case jsr:;
       NEXT_LATCHES.REGS[7] = CURRENT_LATCHES.PC;
       if(instr & 0x0800){
         int offset = sext_off11(instr & 0x07FF) << 1;
@@ -474,8 +473,8 @@ void process_instruction(){
       break;
 
 //_________________________________________________ L D B ________________________________________________
-    case ldb:
-      int result = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6(instr);
+    case ldb:;
+      result = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6(instr);
       result = Low16bits(result); //just to be safe
       result = MEMORY[result >> 1][result % 2];
       result = sext_byte(result);
@@ -485,29 +484,29 @@ void process_instruction(){
       break; 
 
 //_________________________________________________ L D W ________________________________________________
-    case ldw:
-      int result = CURRENT_LATCHES.REGS[get_BaseR(instr)] + (sext_off6(instr)) << 1;
+    case ldw:;
+      result = CURRENT_LATCHES.REGS[get_BaseR(instr)] + ((sext_off6(instr)) << 1);
       result = Low16bits(result); //just to be safe
-      result = MEMORY[result >> 1][1] << 8 + MEMORY[result >> 1][0];
+      result = (MEMORY[result >> 1][1] << 8) + MEMORY[result >> 1][0];
 
       NEXT_LATCHES.REGS[get_DR(instr)] = result;
       setCC(result);
       break;
 
 //_________________________________________________ L E A _______________________________________________
-    case lea:
+    case lea:;
       int offset = sext_off9(instr & 0x01FF) << 1;
       NEXT_LATCHES.PC += Low16bits(offset);
       break;
 
 //________________________________________________ S H F ________________________________________________
-    case shf:
-      int result = CURRENT_LATCHES.REGS[get_SR1(instr)];
+    case shf:;
+      result = CURRENT_LATCHES.REGS[get_SR1(instr)];
       if(instr & 0x0010){ //right shift
         if(instr & 0x0020){ //arithmetic
           int sign = result & 0x8000 >> 15;
           for(int i = 0; i < (instr & 0x000F); i++){
-            result = sign << 15 + result >> 1;
+            result = (sign << 15) + (result >> 1);
           }
         }
         else{ //logical
@@ -523,25 +522,25 @@ void process_instruction(){
       break;
 
 //_______________________________________________ S T B _________________________________________________
-    case stb:
+    case stb:;
       int data = CURRENT_LATCHES.REGS[get_DR(instr)] & 0x000000FF;
       int address = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6((instr & 0x003F));
       MEMORY[address >> 1][address % 2] = data;
       break;
 
  //______________________________________________ S T W _________________________________________________
-    case stw:
-      int data = CURRENT_LATCHES.REGS[get_DR(instr)];
-      int address = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6((instr & 0x003F)) << 1;
+    case stw:;
+      data = CURRENT_LATCHES.REGS[get_DR(instr)];
+      address = CURRENT_LATCHES.REGS[get_BaseR(instr)] + (sext_off6((instr & 0x003F)) << 1);
       MEMORY[address >> 1][1] = data & 0x0000FF00;
       MEMORY[address >> 1][0] = data & 0x000000FF;
       break;       
 
 //______________________________________________ T R A P ________________________________________________
-    case trap:
+    case trap:;
       NEXT_LATCHES.REGS[7] = CURRENT_LATCHES.PC;
       int vect = instr & 0x000000FF;
-      NEXT_LATCHES.PC = MEMORY[vect << 1][1] << 8 + MEMORY[vect << 1][0];
+      NEXT_LATCHES.PC = (MEMORY[vect << 1][1] << 8) + MEMORY[vect << 1][0];
       break;
 
     default: //RTI(1000), 1010, 1011
