@@ -50,9 +50,9 @@ System_Latches CURRENT_LATCHES, NEXT_LATCHES;
       NEXT_LATCHES.N = 0;\
       NEXT_LATCHES.Z = 0;\
       NEXT_LATCHES.P = 0;\
-      if(x > 0) NEXT_LATCHES.P = 1;\
+      if(x < 0 || x > 0x8000) NEXT_LATCHES.N = 1;\
       else if(x == 0) NEXT_LATCHES.Z = 1;\
-      else if(x < 0) NEXT_LATCHES.N = 1;\
+      else if(x > 0) NEXT_LATCHES.P = 1;\
 }
 
 enum opcode {
@@ -404,9 +404,9 @@ void process_instruction(){
   NEXT_LATCHES = CURRENT_LATCHES;
 
   //Fetch
-  int pc = CURRENT_LATCHES.PC;
-  int instr = (MEMORY[pc >> 1][1] << 8) + MEMORY[pc >> 1][0];
+  int instr = (MEMORY[CURRENT_LATCHES.PC >> 1][1] << 8) + MEMORY[CURRENT_LATCHES.PC >> 1][0];
   NEXT_LATCHES.PC += 2;
+  NEXT_LATCHES.PC = Low16bits(NEXT_LATCHES.PC);
 
   //Decode
   int opcode = instr >> 12;
@@ -451,7 +451,8 @@ void process_instruction(){
 
       if(n|z|p){
         int offset = sext_off9(instr & 0x01FF) << 1;
-        NEXT_LATCHES.PC += Low16bits(offset);
+        NEXT_LATCHES.PC += offset;
+        NEXT_LATCHES.PC = Low16bits(NEXT_LATCHES.PC);
       }
       break;
 
@@ -462,7 +463,7 @@ void process_instruction(){
 
 //_________________________________________________ J S R ________________________________________________
     case jsr:;
-      NEXT_LATCHES.REGS[7] = CURRENT_LATCHES.PC;
+      NEXT_LATCHES.REGS[7] = NEXT_LATCHES.PC;
       if(instr & 0x0800){
         int offset = sext_off11(instr & 0x07FF) << 1;
         NEXT_LATCHES.PC += Low16bits(offset);
@@ -474,7 +475,7 @@ void process_instruction(){
 
 //_________________________________________________ L D B ________________________________________________
     case ldb:;
-      result = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6(instr);
+      result = CURRENT_LATCHES.REGS[get_BaseR(instr)] + sext_off6(instr & 0x3F);
       result = Low16bits(result); //just to be safe
       result = MEMORY[result >> 1][result % 2];
       result = sext_byte(result);
@@ -485,7 +486,7 @@ void process_instruction(){
 
 //_________________________________________________ L D W ________________________________________________
     case ldw:;
-      result = CURRENT_LATCHES.REGS[get_BaseR(instr)] + ((sext_off6(instr)) << 1);
+      result = CURRENT_LATCHES.REGS[get_BaseR(instr)] + ((sext_off6(instr & 0x3F)) << 1);
       result = Low16bits(result); //just to be safe
       result = (MEMORY[result >> 1][1] << 8) + MEMORY[result >> 1][0];
 
@@ -496,7 +497,7 @@ void process_instruction(){
 //_________________________________________________ L E A _______________________________________________
     case lea:;
       int offset = sext_off9(instr & 0x01FF) << 1;
-      NEXT_LATCHES.PC += Low16bits(offset);
+      NEXT_LATCHES.REGS[get_DR(instr)] =  Low16bits(NEXT_LATCHES.PC + offset);
       break;
 
 //________________________________________________ S H F ________________________________________________
@@ -538,9 +539,9 @@ void process_instruction(){
 
 //______________________________________________ T R A P ________________________________________________
     case trap:;
-      NEXT_LATCHES.REGS[7] = CURRENT_LATCHES.PC;
+      NEXT_LATCHES.REGS[7] = NEXT_LATCHES.PC;
       int vect = instr & 0x000000FF;
-      NEXT_LATCHES.PC = (MEMORY[vect << 1][1] << 8) + MEMORY[vect << 1][0];
+      NEXT_LATCHES.PC = (MEMORY[vect][1] << 8) + MEMORY[vect][0];
       break;
 
     default: //RTI(1000), 1010, 1011
